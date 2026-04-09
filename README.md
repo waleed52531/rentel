@@ -1,28 +1,60 @@
-# Rent Settlement App (Flutter MVP Scaffold)
+# Rent Settlement App (Flutter MVP)
 
-This repository now includes a Flutter app scaffold based on the provided product document.
+A Flutter MVP application based on the Rent Settlement product document.
 
-## Included in this scaffold
+## What this build includes
 
+### Core flow
+- Splash screen
+- Language selection (English / Urdu)
 - Role selection (Tenant / Owner)
-- Login page with Phone+OTP and Email+Password modes
-- Tenant dashboard with status summary cards
-- Monthly entry form (rent, bills, deductions, notes, proof count)
-- Submission flow (record enters **Submitted** status)
-- Owner dashboard showing pending submissions
-- Owner review page with:
-  - Approve & Freeze
-  - Reject with comment
-- In-memory state management for rapid prototyping
+- Role-based login with:
+  - Phone + OTP mode
+  - Email + Password mode
+
+### Tenant side
+- Tenant dashboard with status counters
+- Create monthly record flow (step-based sections)
+  - Month + base rent
+  - Electricity/Water/Gas/Other bill amounts
+  - Per-bill manual deduction amounts
+  - Deduction reason + notes
+  - Proof upload simulation (proof type tagging)
+- Record submission
+- Rejected record edit + resubmission
+- Monthly history list with lock/edit state
+
+### Owner side
+- Owner dashboard with pending, approved/frozen, and rejected sections
+- Submission review screen with:
+  - Full monthly summary
+  - Bill/deduction review
+  - Proof list review
+  - Approve & Freeze action
+  - Reject with reason
+
+### System behaviors
+- Status model: Draft, Submitted, Under Review, Rejected, Approved, Frozen
+- Business rules:
+  - One active monthly record per month
+  - Tenant can edit only Draft/Rejected
+  - Submitted/Approved/Frozen are tenant-locked
+- In-memory notifications for tenant and owner
+- In-memory audit log for key actions
+
+## Project structure
+
+- `lib/models/entities.dart` - domain models and enums
+- `lib/state/app_state.dart` - app controller, workflow rules, notifications, audit logging
+- `lib/screens/*` - all UI screens
+- `lib/widgets/status_badge.dart` - reusable status chip
+- `lib/app.dart` / `lib/main.dart` - app bootstrap
 
 ## Run locally
-
-1. Install Flutter SDK.
-2. Run:
 
 ```bash
 flutter pub get
 flutter run
 ```
 
-> Note: CI in this environment does not include Flutter SDK, so runtime checks are expected to be run on a local Flutter setup.
+> This environment does not include Flutter SDK, so runtime checks were not executable here.
