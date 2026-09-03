@@ -1,60 +1,63 @@
-# Rent Settlement App (Flutter MVP)
+# Rentra Flutter App
 
-A Flutter MVP application based on the Rent Settlement product document.
+Rentra is a Material 3 Flutter client for the Laravel rental-management API in
+`../Rentra`. The production app uses explicit Bloc events and states, a
+centralized HTTP client, Laravel Sanctum bearer authentication, and secure token
+storage. It does not fall back to local or generated data.
 
-## What this build includes
+## Supported workflows
 
-### Core flow
-- Splash screen
-- Language selection (English / Urdu)
-- Role selection (Tenant / Owner)
-- Role-based login with:
-  - Phone + OTP mode
-  - Email + Password mode
+- Authentication with `identifier`, `password`, and `device_name`, including
+  `/me` session restoration, role-aware routing, logout, and global 401 expiry.
+- Owner property creation/editing, publication changes, and multipart image and
+  video upload.
+- Owner application review, tenancy creation and terms management, monthly
+  record review/freeze/reopen, and maintenance transitions/history.
+- Renter listing discovery and details, applications, tenancy history, monthly
+  drafts/submission/proofs, and maintenance requests/comments/history.
+- Role-aware notifications with read/unread and mark-read actions.
+- Shared loading, empty, API-error, retry, status, property-card, and media
+  states. Laravel 422 field errors are retained and rendered in readable form.
 
-### Tenant side
-- Tenant dashboard with status counters
-- Create monthly record flow (step-based sections)
-  - Month + base rent
-  - Electricity/Water/Gas/Other bill amounts
-  - Per-bill manual deduction amounts
-  - Deduction reason + notes
-  - Proof upload simulation (proof type tagging)
-- Record submission
-- Rejected record edit + resubmission
-- Monthly history list with lock/edit state
+Favorites are intentionally absent from the production client because Laravel
+does not expose a favorites endpoint under `/api/v1`. Property deletion and
+existing property-media deletion are also omitted because their API routes do
+not exist. The supported media upload contract is fully integrated.
 
-### Owner side
-- Owner dashboard with pending, approved/frozen, and rejected sections
-- Submission review screen with:
-  - Full monthly summary
-  - Bill/deduction review
-  - Proof list review
-  - Approve & Freeze action
-  - Reject with reason
+## Architecture
 
-### System behaviors
-- Status model: Draft, Submitted, Under Review, Rejected, Approved, Frozen
-- Business rules:
-  - One active monthly record per month
-  - Tenant can edit only Draft/Rejected
-  - Submitted/Approved/Frozen are tenant-locked
-- In-memory notifications for tenant and owner
-- In-memory audit log for key actions
-
-## Project structure
-
-- `lib/models/entities.dart` - domain models and enums
-- `lib/state/app_state.dart` - app controller, workflow rules, notifications, audit logging
-- `lib/screens/*` - all UI screens
-- `lib/widgets/status_badge.dart` - reusable status chip
-- `lib/app.dart` / `lib/main.dart` - app bootstrap
+- `lib/core/api/app_api_client.dart` — `/api/v1` requests, multipart, paging,
+  timeouts, network errors, Laravel errors, and 401 events.
+- `lib/repositories` — authentication and feature data boundaries.
+- `lib/features` — event/state/Bloc modules for every API-backed feature.
+- `lib/models/entities.dart` — defensive Laravel resource parsing and enums.
+- `lib/screens` — role-gated Owner and Renter mobile workflows.
+- `lib/widgets` — shared feature states, status badges, cards, and media UI.
 
 ## Run locally
+
+The Android emulator reaches a Laravel server on the host through the default
+base URL `http://10.0.2.2:8000`:
 
 ```bash
 flutter pub get
 flutter run
 ```
 
-> This environment does not include Flutter SDK, so runtime checks were not executable here.
+Override it for a physical device or another environment:
+
+```bash
+flutter run --dart-define=RENTRA_API_BASE_URL=http://192.168.1.10:8000
+```
+
+The configured value may include or omit `/api/v1`; the client normalizes it.
+
+## Verification
+
+```bash
+flutter pub get
+dart format .
+flutter analyze
+flutter test
+flutter build apk --debug
+```

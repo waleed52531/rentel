@@ -1,5 +1,5 @@
 name: rent_settlement_app
-description: A shared rent and bill settlement app for tenants and owners.
+description: Rentra rental property management app for renters and owners.
 publish_to: 'none'
 version: 0.1.0+1
 
@@ -9,8 +9,14 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
 
   cupertino_icons: ^1.0.8
+  flutter_bloc: ^9.1.1
+  flutter_secure_storage: ^9.1.0
+  http: ^1.2.2
+  file_picker: ^10.3.10
 
 dev_dependencies:
   flutter_test:
