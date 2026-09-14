@@ -3,9 +3,9 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:rent_settlement_app/core/api/app_api_client.dart';
-import 'package:rent_settlement_app/core/errors/app_exception.dart';
-import 'package:rent_settlement_app/models/entities.dart';
+import 'package:rent_settlement_app/data/api/app_api_client.dart';
+import 'package:rent_settlement_app/data/errors/app_exception.dart';
+import 'package:rent_settlement_app/model/entities.dart';
 
 void main() {
   test('login sends Laravel identifier contract and parses role', () async {

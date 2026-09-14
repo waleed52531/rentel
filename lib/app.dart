@@ -2,17 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
-import 'core/api/app_api_client.dart';
-import 'core/preferences/app_preferences_cubit.dart';
-import 'core/storage/secure_session_store.dart';
-import 'core/theme/app_theme.dart';
-import 'features/auth/auth_bloc.dart';
-import 'features/auth/auth_state.dart';
-import 'models/entities.dart';
-import 'repositories/auth_repository.dart';
-import 'repositories/rental_repository.dart';
-import 'screens/login_screen.dart';
-import 'screens/splash_screen.dart';
+import 'package:rent_settlement_app/data/api/app_api_client.dart';
+import 'package:rent_settlement_app/config/preferences/app_preferences_cubit.dart';
+import 'package:rent_settlement_app/service/storage/secure_session_store.dart';
+import 'package:rent_settlement_app/config/theme/app_theme.dart';
+import 'package:rent_settlement_app/bloc/auth/auth_bloc.dart';
+import 'package:rent_settlement_app/bloc/auth/auth_state.dart';
+import 'package:rent_settlement_app/model/entities.dart';
+import 'package:rent_settlement_app/repository/auth_repository.dart';
+import 'package:rent_settlement_app/repository/rental_repository.dart';
+import 'package:rent_settlement_app/view/login_screen.dart';
+import 'package:rent_settlement_app/view/splash_screen.dart';
 
 const rentraApiBaseUrl = String.fromEnvironment(
   'RENTRA_API_BASE_URL',

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rent_settlement_app/models/entities.dart';
+import 'package:rent_settlement_app/model/entities.dart';
 
 void main() {
   group('AppRole', () {
