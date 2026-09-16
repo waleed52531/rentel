@@ -92,6 +92,48 @@ void main() {
             ['area', 'type', 'min_rent', 'max_rent', 'page', 'per_page']));
   });
 
+  test('local storage media URLs are rewritten to the configured API host',
+      () async {
+    final client = AppApiClient(
+        baseUrl: 'http://172.40.0.75:8002',
+        httpClient: MockClient((_) async => http.Response(
+            jsonEncode({
+              'data': [
+                {
+                  'id': 7,
+                  'title': 'House',
+                  'type': 'house',
+                  'rental_mode': 'whole',
+                  'rent_amount': '60000.00',
+                  'area': 'A',
+                  'city': 'C',
+                  'address': 'X',
+                  'status': 'available',
+                  'publication_status': 'published',
+                  'primary_image': {
+                    'id': 24,
+                    'url':
+                        'http://127.0.0.1:8001/storage/property-images/demo.webp',
+                    'is_primary': true,
+                    'sort_order': 1
+                  }
+                }
+              ],
+              'meta': {
+                'current_page': 1,
+                'last_page': 1,
+                'per_page': 12,
+                'total': 1
+              }
+            }),
+            200)));
+
+    final result = await client.listings();
+
+    expect(result.items.single.images.single.url,
+        'http://172.40.0.75:8002/storage/property-images/demo.webp');
+  });
+
   test('unknown backend enum is preserved without crashing', () {
     final property = RentalProperty.fromJson({
       'id': 1,

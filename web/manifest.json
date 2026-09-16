@@ -1,11 +1,11 @@
 {
-    "name": "rent_settlement_app",
-    "short_name": "rent_settlement_app",
+    "name": "Homvaro",
+    "short_name": "Homvaro",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Homvaro rental property management app.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

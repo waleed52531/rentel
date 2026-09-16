@@ -9,6 +9,7 @@ import 'package:rent_settlement_app/repository/rental_repository.dart';
 import 'package:rent_settlement_app/config/widgets/confirmation_dialog.dart';
 import 'package:rent_settlement_app/config/widgets/entity_status_badge.dart';
 import 'package:rent_settlement_app/config/widgets/feature_states.dart';
+import 'package:rent_settlement_app/config/widgets/rentra_dashboard_widgets.dart';
 
 class MaintenanceDetailScreen extends StatelessWidget {
   const MaintenanceDetailScreen(
@@ -51,48 +52,86 @@ class _Detail extends StatelessWidget {
   @override
   Widget build(BuildContext context) =>
       ListView(padding: const EdgeInsets.all(18), children: [
-        Row(children: [
-          Expanded(
-              child: Text(request.title,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleLarge
-                      ?.copyWith(fontWeight: FontWeight.bold))),
-          EntityStatusBadge(status: request.status)
-        ]),
-        Text(
-            '${request.propertyTitle} · ${request.priority.displayLabel} priority'),
-        const SizedBox(height: 10),
-        Text(request.description),
-        const SizedBox(height: 18),
-        Text('Attachments (${request.attachments.length})',
-            style: Theme.of(context)
-                .textTheme
-                .titleMedium
-                ?.copyWith(fontWeight: FontWeight.bold)),
-        if (request.attachments.isEmpty)
-          const Text('No attachments.')
-        else
-          ...request.attachments.map((item) => ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.attach_file),
-              title: Text(item.originalName),
-              subtitle: Text(item.mimeType))),
-        const SizedBox(height: 12),
-        Text('Timeline',
-            style: Theme.of(context)
-                .textTheme
-                .titleMedium
-                ?.copyWith(fontWeight: FontWeight.bold)),
-        if (request.timeline.isEmpty)
-          const Text('No timeline entries.')
-        else
-          ...request.timeline.map((entry) => ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.history),
-              title: Text(entry.toStatus.displayLabel),
-              subtitle: Text(
-                  '${entry.changedBy}${entry.comment.isEmpty ? '' : ' · ${entry.comment}'}'))),
+        RentraDetailHero(
+          title: request.title,
+          subtitle:
+              '${request.propertyTitle} | ${request.priority.displayLabel} priority',
+          icon: Icons.build_outlined,
+          status: EntityStatusBadge(status: request.status),
+          metrics: [
+            RentraMetricData(
+              label: 'Attachments',
+              value: '${request.attachments.length}',
+              icon: Icons.attach_file_outlined,
+            ),
+            RentraMetricData(
+              label: 'Timeline',
+              value: '${request.timeline.length}',
+              icon: Icons.timeline_outlined,
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        RentraInfoPanel(
+          title: 'Request details',
+          icon: Icons.description_outlined,
+          children: [
+            RentraInfoRow(
+              icon: Icons.home_work_outlined,
+              label: 'Property',
+              value: request.propertyTitle,
+            ),
+            RentraInfoRow(
+              icon: Icons.flag_outlined,
+              label: 'Priority',
+              value: request.priority.displayLabel,
+            ),
+            RentraInfoRow(
+              icon: Icons.notes_outlined,
+              label: 'Description',
+              value: request.description,
+            ),
+          ],
+        ),
+        RentraInfoPanel(
+          title: 'Attachments (${request.attachments.length})',
+          icon: Icons.attach_file_outlined,
+          children: request.attachments.isEmpty
+              ? const [
+                  RentraInfoRow(
+                    icon: Icons.folder_off_outlined,
+                    label: 'Files',
+                    value: 'No attachments.',
+                  )
+                ]
+              : request.attachments
+                  .map((item) => RentraInfoRow(
+                        icon: Icons.insert_drive_file_outlined,
+                        label: item.originalName,
+                        value: item.mimeType,
+                      ))
+                  .toList(),
+        ),
+        RentraInfoPanel(
+          title: 'Timeline',
+          icon: Icons.timeline_outlined,
+          children: request.timeline.isEmpty
+              ? const [
+                  RentraInfoRow(
+                    icon: Icons.history_toggle_off_outlined,
+                    label: 'Activity',
+                    value: 'No timeline entries.',
+                  )
+                ]
+              : request.timeline
+                  .map((entry) => RentraInfoRow(
+                        icon: Icons.history,
+                        label: entry.toStatus.displayLabel,
+                        value:
+                            '${entry.changedBy}${entry.comment.isEmpty ? '' : ' | ${entry.comment}'}',
+                      ))
+                  .toList(),
+        ),
         const SizedBox(height: 14),
         OutlinedButton.icon(
             onPressed: () => _comment(context),

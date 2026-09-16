@@ -7,6 +7,7 @@ import 'package:rent_settlement_app/bloc/tenancy_detail/tenancy_detail_state.dar
 import 'package:rent_settlement_app/repository/rental_repository.dart';
 import 'package:rent_settlement_app/config/widgets/entity_status_badge.dart';
 import 'package:rent_settlement_app/config/widgets/feature_states.dart';
+import 'package:rent_settlement_app/config/widgets/rentra_dashboard_widgets.dart';
 
 class TenancyDetailScreen extends StatelessWidget {
   const TenancyDetailScreen({super.key, required this.tenancyId});
@@ -37,61 +38,87 @@ class TenancyDetailScreen extends StatelessWidget {
               return ListView(
                 padding: const EdgeInsets.all(18),
                 children: [
-                  Row(children: [
-                    Expanded(
-                      child: Text(
-                        tenancy.propertyTitle,
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleLarge
-                            ?.copyWith(fontWeight: FontWeight.bold),
+                  RentraDetailHero(
+                    title: tenancy.propertyTitle,
+                    subtitle: (tenancy.property?.address.isNotEmpty ?? false)
+                        ? tenancy.property!.address
+                        : 'Lease and billing overview',
+                    icon: Icons.key_outlined,
+                    status: EntityStatusBadge(status: tenancy.status),
+                    metrics: [
+                      RentraMetricData(
+                        label: 'Monthly rent',
+                        value: 'PKR ${tenancy.monthlyRent.toStringAsFixed(0)}',
+                        icon: Icons.payments_outlined,
                       ),
-                    ),
-                    EntityStatusBadge(status: tenancy.status),
-                  ]),
-                  if (tenancy.property?.address.isNotEmpty ?? false)
-                    Text(tenancy.property!.address),
+                      RentraMetricData(
+                        label: 'Deposit',
+                        value: 'PKR ${tenancy.deposit.toStringAsFixed(0)}',
+                        icon: Icons.account_balance_wallet_outlined,
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 14),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.person_outline),
-                    title: const Text('Renter'),
-                    subtitle: Text(tenancy.renterName),
+                  RentraInfoPanel(
+                    title: 'Renter assignment',
+                    icon: Icons.person_outline,
+                    children: [
+                      RentraInfoRow(
+                        icon: Icons.person_outline,
+                        label: 'Renter',
+                        value: tenancy.renterName.isEmpty
+                            ? 'Not assigned'
+                            : tenancy.renterName,
+                      ),
+                      RentraInfoRow(
+                        icon: Icons.home_work_outlined,
+                        label: 'Property',
+                        value: tenancy.propertyTitle,
+                      ),
+                    ],
                   ),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.payments_outlined),
-                    title: const Text('Agreed rent and deposit'),
-                    subtitle: Text(
-                        'PKR ${tenancy.monthlyRent.toStringAsFixed(2)} · PKR ${tenancy.deposit.toStringAsFixed(2)}'),
+                  RentraInfoPanel(
+                    title: 'Terms',
+                    icon: Icons.fact_check_outlined,
+                    children: [
+                      RentraInfoRow(
+                        icon: Icons.date_range_outlined,
+                        label: 'Term',
+                        value:
+                            '${_date(tenancy.startDate)}${tenancy.endDate == null ? '' : ' - ${_date(tenancy.endDate!)}'}',
+                      ),
+                      if (tenancy.billingDay != null)
+                        RentraInfoRow(
+                          icon: Icons.event_repeat_outlined,
+                          label: 'Billing day',
+                          value: tenancy.billingDay.toString(),
+                        ),
+                      RentraInfoRow(
+                        icon: Icons.payments_outlined,
+                        label: 'Agreed rent and deposit',
+                        value:
+                            'PKR ${tenancy.monthlyRent.toStringAsFixed(2)} | PKR ${tenancy.deposit.toStringAsFixed(2)}',
+                      ),
+                    ],
                   ),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.date_range_outlined),
-                    title: const Text('Term'),
-                    subtitle: Text(
-                        '${_date(tenancy.startDate)}${tenancy.endDate == null ? '' : ' – ${_date(tenancy.endDate!)}'}'),
-                  ),
-                  if (tenancy.billingDay != null)
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.event_repeat_outlined),
-                      title: const Text('Billing day'),
-                      subtitle: Text(tenancy.billingDay.toString()),
-                    ),
-                  if (tenancy.notes.isNotEmpty)
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.notes_outlined),
-                      title: const Text('Notes'),
-                      subtitle: Text(tenancy.notes),
-                    ),
-                  if (tenancy.endReason.isNotEmpty)
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.info_outline),
-                      title: const Text('End reason'),
-                      subtitle: Text(tenancy.endReason),
+                  if (tenancy.notes.isNotEmpty || tenancy.endReason.isNotEmpty)
+                    RentraInfoPanel(
+                      title: 'Notes',
+                      icon: Icons.notes_outlined,
+                      children: [
+                        if (tenancy.notes.isNotEmpty)
+                          RentraInfoRow(
+                            icon: Icons.notes_outlined,
+                            label: 'Notes',
+                            value: tenancy.notes,
+                          ),
+                        if (tenancy.endReason.isNotEmpty)
+                          RentraInfoRow(
+                            icon: Icons.info_outline,
+                            label: 'End reason',
+                            value: tenancy.endReason,
+                          ),
+                      ],
                     ),
                 ],
               );

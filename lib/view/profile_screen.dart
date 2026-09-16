@@ -30,7 +30,10 @@ class ProfileScreen extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text(context.tr('Profile'))),
+      appBar: AppBar(
+          title: RentraAppBarTitle(
+              title: context.tr('Profile'),
+              subtitle: context.tr('Account and app settings'))),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -40,7 +43,7 @@ class ProfileScreen extends StatelessWidget {
                 child: ListView(
                   children: [
                     RentraDashboardHeader(
-                      title: user.name.isEmpty ? 'Rentra user' : user.name,
+                      title: user.name.isEmpty ? 'Homvaro user' : user.name,
                       subtitle:
                           '${user.role == AppRole.owner ? 'Owner workspace' : 'Renter workspace'} - ${user.email}',
                       icon: user.role == AppRole.owner
@@ -72,7 +75,7 @@ class ProfileScreen extends StatelessWidget {
                                 children: [
                                   Text(
                                     user.name.isEmpty
-                                        ? context.tr('Rentra user')
+                                        ? context.tr('Homvaro user')
                                         : user.name,
                                     style: theme.textTheme.titleLarge
                                         ?.copyWith(fontWeight: FontWeight.bold),
@@ -127,7 +130,7 @@ class ProfileScreen extends StatelessWidget {
                             leading: const Icon(Icons.contrast_outlined),
                             title: Text(context.tr('Theme')),
                             subtitle:
-                                Text(context.tr('Choose how Rentra looks')),
+                                Text(context.tr('Choose how Homvaro looks')),
                             trailing: DropdownButton<ThemeMode>(
                               value: preferences.themeMode,
                               underline: const SizedBox.shrink(),
@@ -176,7 +179,7 @@ class ProfileScreen extends StatelessWidget {
                                 title: Text(context.tr('Privacy policy')),
                                 content: Text(
                                   context.tr(
-                                      'Rentra uses your account, property, tenancy, payment-record, maintenance, and notification data only to operate the rental management workflows provided by the connected Laravel API.'),
+                                      'Homvaro uses your account, property, tenancy, payment-record, maintenance, and notification data only to operate the rental management workflows provided by the connected Laravel API.'),
                                 ),
                                 actions: [
                                   TextButton(

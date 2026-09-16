@@ -1,10 +1,16 @@
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'package:rent_settlement_app/config/localization/app_strings.dart';
 import 'package:rent_settlement_app/bloc/auth/auth_bloc.dart';
 import 'package:rent_settlement_app/bloc/auth/auth_state.dart';
+import 'package:rent_settlement_app/bloc/notifications/notifications_bloc.dart';
+import 'package:rent_settlement_app/bloc/notifications/notifications_event.dart';
+import 'package:rent_settlement_app/bloc/notifications/notifications_state.dart';
 import 'package:rent_settlement_app/bloc/renter/applications/renter_applications_bloc.dart';
 import 'package:rent_settlement_app/bloc/renter/applications/renter_applications_event.dart';
 import 'package:rent_settlement_app/bloc/renter/applications/renter_applications_state.dart';
@@ -62,6 +68,9 @@ class RenterDashboardScreen extends StatelessWidget {
       BlocProvider(
           create: (_) => RenterMaintenanceBloc(repository)
             ..add(const RenterMaintenanceRequested())),
+      BlocProvider(
+          create: (_) => NotificationsBloc(repository)
+            ..add(const NotificationsRequested(unreadOnly: true))),
     ], child: const _RenterShell());
   }
 }
@@ -83,7 +92,8 @@ class _RenterShell extends StatefulWidget {
   State<_RenterShell> createState() => _RenterShellState();
 }
 
-class _RenterShellState extends State<_RenterShell> {
+class _RenterShellState extends State<_RenterShell>
+    with WidgetsBindingObserver {
   int index = 0;
   static const pages = [
     RenterListingsView(),
@@ -91,6 +101,26 @@ class _RenterShellState extends State<_RenterShell> {
     RenterRentView(),
     RenterMaintenanceView()
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _refreshWorkspace();
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(
@@ -99,13 +129,23 @@ class _RenterShellState extends State<_RenterShell> {
               subtitle: 'Renter workspace',
             ),
             actions: [
-              RentraChromeButton(
-                  tooltip: 'Notifications',
-                  onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute<void>(
-                          builder: (_) => const NotificationsScreen())),
-                  icon: Icons.notifications_outlined),
+              BlocBuilder<NotificationsBloc, NotificationsState>(
+                  builder: (context, state) {
+                final unread = state is NotificationsLoaded
+                    ? state.items.length
+                    : state is NotificationsEmpty
+                        ? 0
+                        : 0;
+                return RentraChromeButton(
+                    tooltip: unread > 0
+                        ? '$unread unread notification${unread == 1 ? '' : 's'}'
+                        : 'Notifications',
+                    onPressed: _openNotifications,
+                    badgeCount: unread,
+                    icon: unread > 0
+                        ? Icons.notifications_active_outlined
+                        : Icons.notifications_outlined);
+              }),
               RentraChromeButton(
                   tooltip: 'Profile',
                   onPressed: () => Navigator.push(
@@ -124,6 +164,9 @@ class _RenterShellState extends State<_RenterShell> {
                     .read<RenterApplicationsBloc>()
                     .add(const RenterApplicationsRequested());
               }
+              context
+                  .read<NotificationsBloc>()
+                  .add(const NotificationsRequested(unreadOnly: true));
             },
             destinations: [
               NavigationDestination(
@@ -139,6 +182,30 @@ class _RenterShellState extends State<_RenterShell> {
                   label: context.tr('Maintenance'))
             ]),
       );
+
+  Future<void> _openNotifications() async {
+    await Navigator.push<void>(context,
+        MaterialPageRoute(builder: (_) => const NotificationsScreen()));
+    if (mounted) {
+      _refreshWorkspace();
+    }
+  }
+
+  void _refreshWorkspace() {
+    context
+        .read<NotificationsBloc>()
+        .add(const NotificationsRequested(unreadOnly: true));
+    context
+        .read<RenterApplicationsBloc>()
+        .add(const RenterApplicationsRequested());
+    context.read<RenterTenancyBloc>().add(const RenterTenancyRequested());
+    context
+        .read<RenterMonthlyRecordsBloc>()
+        .add(const RenterMonthlyRecordsRequested());
+    context
+        .read<RenterMaintenanceBloc>()
+        .add(const RenterMaintenanceRequested());
+  }
 
   String _title(BuildContext context, int index) => [
         context.tr('Explore listings'),
@@ -326,49 +393,192 @@ class _RenterListingsViewState extends State<RenterListingsView> {
   }
 
   Future<void> _apply(BuildContext context, RentalProperty property) async {
-    final key = GlobalKey<FormState>();
-    final message = TextEditingController(), phone = TextEditingController();
-    final submit = await showDialog<bool>(
-        context: context,
-        builder: (dialog) => AlertDialog(
-                title: const Text('Apply for listing'),
-                content: Form(
-                    key: key,
-                    child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      TextFormField(
-                          controller: message,
-                          maxLines: 4,
-                          decoration:
-                              const InputDecoration(labelText: 'Message'),
-                          validator: (value) => (value?.trim().length ?? 0) < 10
-                              ? 'Write at least 10 characters'
-                              : null),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                          controller: phone,
-                          keyboardType: TextInputType.phone,
-                          decoration: const InputDecoration(
-                              labelText: 'Contact phone (optional)'))
-                    ])),
-                actions: [
-                  TextButton(
-                      onPressed: () => Navigator.pop(dialog, false),
-                      child: const Text('Cancel')),
-                  FilledButton(
-                      onPressed: () {
-                        if (key.currentState?.validate() ?? false) {
-                          Navigator.pop(dialog, true);
-                        }
-                      },
-                      child: const Text('Submit'))
-                ]));
-    if (submit == true && context.mounted) {
+    final draft = await showModalBottomSheet<_ApplicationDraft>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ApplyListingSheet(property: property),
+    );
+    if (draft != null && context.mounted) {
       context.read<RenterApplicationsBloc>().add(RenterApplicationSubmitted(
-          property.id, message.text,
-          contactPhone: phone.text));
+          property.id, draft.message,
+          contactPhone: draft.phone));
     }
-    message.dispose();
-    phone.dispose();
+  }
+}
+
+class _ApplicationDraft {
+  const _ApplicationDraft({required this.message, required this.phone});
+
+  final String message;
+  final String phone;
+}
+
+class _ApplyListingSheet extends StatefulWidget {
+  const _ApplyListingSheet({required this.property});
+
+  final RentalProperty property;
+
+  @override
+  State<_ApplyListingSheet> createState() => _ApplyListingSheetState();
+}
+
+class _ApplyListingSheetState extends State<_ApplyListingSheet> {
+  final _key = GlobalKey<FormState>();
+  final _message = TextEditingController();
+  final _phone = TextEditingController();
+
+  @override
+  void dispose() {
+    _message.dispose();
+    _phone.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final property = widget.property;
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: scheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+          border: Border(top: BorderSide(color: scheme.outlineVariant)),
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
+          child: Form(
+            key: _key,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: scheme.outlineVariant,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const SizedBox(width: 42, height: 4),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: scheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Icon(Icons.assignment_outlined,
+                          color: scheme.primary),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Apply for this property',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          property.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: scheme.onSurface.withValues(alpha: .66),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ]),
+                const SizedBox(height: 16),
+                RentraInfoPanel(
+                  title: 'Listing selected',
+                  icon: Icons.home_work_outlined,
+                  children: [
+                    RentraInfoRow(
+                      icon: Icons.payments_outlined,
+                      label: 'Rent',
+                      value:
+                          '${property.currency} ${property.monthlyRent.toStringAsFixed(0)}',
+                    ),
+                    RentraInfoRow(
+                      icon: Icons.place_outlined,
+                      label: 'Location',
+                      value: [
+                        property.area,
+                        property.city,
+                      ].where((value) => value.isNotEmpty).join(', '),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                TextFormField(
+                  controller: _message,
+                  maxLines: 4,
+                  decoration: const InputDecoration(
+                    labelText: 'Message',
+                    prefixIcon: Icon(Icons.chat_bubble_outline),
+                  ),
+                  validator: (value) => (value?.trim().length ?? 0) < 10
+                      ? 'Write at least 10 characters'
+                      : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _phone,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'Contact phone (optional)',
+                    prefixIcon: Icon(Icons.call_outlined),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Row(children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: () {
+                        if (!(_key.currentState?.validate() ?? false)) return;
+                        Navigator.pop(
+                          context,
+                          _ApplicationDraft(
+                            message: _message.text.trim(),
+                            phone: _phone.text.trim(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.send_outlined),
+                      label: const Text('Submit'),
+                    ),
+                  ),
+                ]),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -396,71 +606,8 @@ class ListingDetailsScreen extends StatelessWidget {
                         .add(RenterListingDetailRequested(propertyId)));
               }
               final property = (state as RenterListingDetailLoaded).listing;
-              final theme = Theme.of(context);
-              final scheme = theme.colorScheme;
               return ListView(padding: const EdgeInsets.all(16), children: [
-                SizedBox(
-                  height: 260,
-                  child: Stack(children: [
-                    Positioned.fill(
-                      child: property.images.isNotEmpty
-                          ? PageView(
-                              children: property.images
-                                  .map((media) => NetworkMediaImage(
-                                      url: media.url,
-                                      borderRadius: BorderRadius.circular(8)))
-                                  .toList())
-                          : DecoratedBox(
-                              decoration: BoxDecoration(
-                                color: scheme.secondaryContainer,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Icon(Icons.apartment_rounded,
-                                  size: 70, color: scheme.onSecondaryContainer),
-                            ),
-                    ),
-                    Positioned.fill(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.black.withValues(alpha: .04),
-                              Colors.black.withValues(alpha: .62),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      left: 16,
-                      right: 16,
-                      bottom: 16,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(property.title,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.headlineMedium?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w900,
-                              )),
-                          const SizedBox(height: 6),
-                          Text(
-                            '${property.area}, ${property.city}',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: .84),
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ]),
-                ),
+                _ListingImageHero(property: property),
                 const SizedBox(height: 16),
                 Row(children: [
                   Expanded(
@@ -529,6 +676,256 @@ class ListingDetailsScreen extends StatelessWidget {
               ]);
             })),
       );
+}
+
+class _ListingImageHero extends StatefulWidget {
+  const _ListingImageHero({required this.property});
+
+  final RentalProperty property;
+
+  @override
+  State<_ListingImageHero> createState() => _ListingImageHeroState();
+}
+
+class _ListingImageHeroState extends State<_ListingImageHero> {
+  late final PageController _controller;
+  int _index = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = PageController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final property = widget.property;
+    final images = property.images;
+
+    return SizedBox(
+      height: 260,
+      child: Stack(children: [
+        Positioned.fill(
+          child: images.isNotEmpty
+              ? ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: GestureDetector(
+                    onTap: () => Navigator.push<void>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => _PropertyImageGalleryScreen(
+                          title: property.title,
+                          images: images,
+                          initialIndex: _index,
+                        ),
+                      ),
+                    ),
+                    child: PageView.builder(
+                      controller: _controller,
+                      itemCount: images.length,
+                      onPageChanged: (value) => setState(() => _index = value),
+                      itemBuilder: (context, index) => NetworkMediaImage(
+                        url: images[index].url,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                )
+              : DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: scheme.secondaryContainer,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(Icons.apartment_rounded,
+                      size: 70, color: scheme.onSecondaryContainer),
+                ),
+        ),
+        Positioned.fill(
+          child: IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: .04),
+                    Colors.black.withValues(alpha: .62),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        if (images.length > 1)
+          Positioned(
+            right: 14,
+            top: 14,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: .48),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.white.withValues(alpha: .18)),
+              ),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  const Icon(Icons.photo_library_outlined,
+                      color: Colors.white, size: 16),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${_index + 1}/${images.length}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ]),
+              ),
+            ),
+          ),
+        if (images.isNotEmpty)
+          Positioned(
+            left: 14,
+            top: 14,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: .48),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.white.withValues(alpha: .18)),
+              ),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.touch_app_outlined, color: Colors.white, size: 16),
+                  SizedBox(width: 6),
+                  Text(
+                    'View all',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ]),
+              ),
+            ),
+          ),
+        Positioned(
+          left: 16,
+          right: 16,
+          bottom: 16,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(property.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                  )),
+              const SizedBox(height: 6),
+              Text(
+                [property.area, property.city]
+                    .where((value) => value.isNotEmpty)
+                    .join(', '),
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: .84),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
+class _PropertyImageGalleryScreen extends StatefulWidget {
+  const _PropertyImageGalleryScreen({
+    required this.title,
+    required this.images,
+    required this.initialIndex,
+  });
+
+  final String title;
+  final List<PropertyMedia> images;
+  final int initialIndex;
+
+  @override
+  State<_PropertyImageGalleryScreen> createState() =>
+      _PropertyImageGalleryScreenState();
+}
+
+class _PropertyImageGalleryScreenState
+    extends State<_PropertyImageGalleryScreen> {
+  late final PageController _controller;
+  late int _index;
+
+  @override
+  void initState() {
+    super.initState();
+    _index = widget.initialIndex;
+    _controller = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        title: Text(
+          widget.title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        actions: [
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: Text(
+                '${_index + 1}/${widget.images.length}',
+                style: const TextStyle(fontWeight: FontWeight.w900),
+              ),
+            ),
+          )
+        ],
+      ),
+      body: PageView.builder(
+        controller: _controller,
+        itemCount: widget.images.length,
+        onPageChanged: (value) => setState(() => _index = value),
+        itemBuilder: (context, index) => InteractiveViewer(
+          minScale: 1,
+          maxScale: 4,
+          child: Center(
+            child: NetworkMediaImage(
+              url: widget.images[index].url,
+              fit: BoxFit.contain,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _DetailStat extends StatelessWidget {
@@ -738,10 +1135,17 @@ class _TenancySection extends StatelessWidget {
         final items =
             state is RenterTenancyLoaded ? state.tenancies : <Tenancy>[];
         if (items.isEmpty) {
-          return const Card(
-              child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text('No tenancy assigned.')));
+          return const RentraInfoPanel(
+            title: 'No tenancy assigned',
+            icon: Icons.key_off_outlined,
+            children: [
+              RentraInfoRow(
+                icon: Icons.info_outline,
+                label: 'Status',
+                value: 'Accepted rental terms will appear here.',
+              )
+            ],
+          );
         }
         return Column(
             children: items
@@ -784,10 +1188,17 @@ class _RecordsSection extends StatelessWidget {
             ? state.records
             : <MonthlyRecord>[];
         if (items.isEmpty) {
-          return const Card(
-              child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text('No monthly records.')));
+          return const RentraInfoPanel(
+            title: 'No monthly records',
+            icon: Icons.receipt_long_outlined,
+            children: [
+              RentraInfoRow(
+                icon: Icons.info_outline,
+                label: 'Status',
+                value: 'Rent records and proofs will appear here.',
+              )
+            ],
+          );
         }
         return Column(
             children: items
@@ -979,6 +1390,7 @@ class _MonthlyRecordFormScreenState extends State<MonthlyRecordFormScreen> {
       for (final entry in controllers.entries)
         entry.key: double.tryParse(entry.value.text) ?? 0
     };
+    if (submit && !_canSubmit(amounts)) return;
     final old = widget.record;
     final record = MonthlyRecord(
         id: old?.id ?? '',
@@ -996,6 +1408,37 @@ class _MonthlyRecordFormScreenState extends State<MonthlyRecordFormScreen> {
         proofs: old?.proofs ?? const [],
         proofsCount: old?.proofsCount ?? 0);
     Navigator.pop(context, MonthlyRecordFormResult(record, submit, proofPaths));
+  }
+
+  bool _canSubmit(Map<PaymentCategory, double> amounts) {
+    final charged = amounts.entries
+        .where(
+            (entry) => entry.key != PaymentCategory.unknown && entry.value > 0)
+        .map((entry) => entry.key)
+        .toList();
+    if (charged.isEmpty) {
+      showActionMessage(
+          context, 'Enter at least one amount before submitting.');
+      return false;
+    }
+
+    final existingProofCategories = {
+      for (final proof in widget.record?.proofs ?? const <MonthlyProof>[])
+        proof.category,
+    };
+    final missing = charged
+        .where((category) =>
+            (proofPaths[category]?.isNotEmpty ?? false) == false &&
+            !existingProofCategories.contains(category))
+        .toList();
+    if (missing.isNotEmpty) {
+      showActionMessage(
+        context,
+        'Attach proof for ${missing.map((item) => item.displayLabel).join(', ')} before submitting.',
+      );
+      return false;
+    }
+    return true;
   }
 
   String _month() {
@@ -1097,105 +1540,356 @@ class RenterMaintenanceView extends StatelessWidget {
       showActionMessage(context, 'An active tenancy is required.');
       return;
     }
-    final title = TextEditingController(),
-        description = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-    var priority = MaintenancePriority.medium;
-    var attachments = <String>[];
-    final create = await showDialog<bool>(
-        context: context,
-        builder: (dialog) => StatefulBuilder(
-            builder: (context, setDialogState) => AlertDialog(
-                    title: const Text('Maintenance request'),
-                    content: SingleChildScrollView(
-                        child: Form(
-                            key: formKey,
-                            child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  TextFormField(
-                                      controller: title,
-                                      decoration: const InputDecoration(
-                                          labelText: 'Title'),
-                                      validator: (value) =>
-                                          value == null || value.trim().isEmpty
-                                              ? 'Title is required'
-                                              : null),
-                                  const SizedBox(height: 8),
-                                  TextFormField(
-                                      controller: description,
-                                      maxLines: 4,
-                                      decoration: const InputDecoration(
-                                          labelText:
-                                              'Description (minimum 10 characters)'),
-                                      validator: (value) =>
-                                          (value?.trim().length ?? 0) < 10
-                                              ? 'Write at least 10 characters'
-                                              : null),
-                                  const SizedBox(height: 8),
-                                  DropdownButtonFormField(
-                                      initialValue: priority,
-                                      decoration: const InputDecoration(
-                                          labelText: 'Priority'),
-                                      items: MaintenancePriority.values
-                                          .where((item) =>
-                                              item !=
-                                              MaintenancePriority.unknown)
-                                          .map((item) => DropdownMenuItem(
-                                              value: item,
-                                              child: Text(item.displayLabel)))
-                                          .toList(),
-                                      onChanged: (value) => setDialogState(
-                                          () => priority = value!)),
-                                  const SizedBox(height: 8),
-                                  OutlinedButton.icon(
-                                      onPressed: () async {
-                                        final result = await FilePicker.platform
-                                            .pickFiles(
-                                                allowMultiple: true,
-                                                type: FileType.custom,
-                                                allowedExtensions: const [
-                                              'jpg',
-                                              'jpeg',
-                                              'png',
-                                              'webp',
-                                              'pdf'
-                                            ]);
-                                        if (result != null &&
-                                            result.paths.isNotEmpty) {
-                                          setDialogState(() => attachments =
-                                              result.paths
-                                                  .whereType<String>()
-                                                  .toList());
-                                        }
-                                      },
-                                      icon: const Icon(Icons.attach_file),
-                                      label: Text(
-                                          '${attachments.length} attachment(s)'))
-                                ]))),
-                    actions: [
-                      TextButton(
-                          onPressed: () => Navigator.pop(dialog, false),
-                          child: const Text('Cancel')),
-                      FilledButton(
-                          onPressed: () {
-                            if (formKey.currentState?.validate() ?? false) {
-                              Navigator.pop(dialog, true);
-                            }
-                          },
-                          child: const Text('Create'))
-                    ])));
-    if (create == true && context.mounted) {
+    final draft = await showModalBottomSheet<_MaintenanceDraft>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _MaintenanceRequestSheet(tenancy: active),
+    );
+    if (draft != null && context.mounted) {
       context.read<RenterMaintenanceBloc>().add(RenterMaintenanceCreated(
           tenancyId: active.id,
-          title: title.text,
-          description: description.text,
-          priority: priority,
-          attachmentPaths: attachments));
+          title: draft.title,
+          description: draft.description,
+          priority: draft.priority,
+          attachmentPaths: draft.attachments));
     }
-    title.dispose();
-    description.dispose();
   }
+}
+
+class _MaintenanceDraft {
+  const _MaintenanceDraft({
+    required this.title,
+    required this.description,
+    required this.priority,
+    required this.attachments,
+  });
+
+  final String title;
+  final String description;
+  final MaintenancePriority priority;
+  final List<String> attachments;
+}
+
+class _MaintenanceRequestSheet extends StatefulWidget {
+  const _MaintenanceRequestSheet({required this.tenancy});
+
+  final Tenancy tenancy;
+
+  @override
+  State<_MaintenanceRequestSheet> createState() =>
+      _MaintenanceRequestSheetState();
+}
+
+class _MaintenanceRequestSheetState extends State<_MaintenanceRequestSheet> {
+  static const _maxAttachmentBytes = 2 * 1024 * 1024;
+  static const _maxAttachments = 6;
+  static const _allowedAttachmentExtensions = {
+    'jpg',
+    'jpeg',
+    'png',
+    'webp',
+    'pdf'
+  };
+
+  final _key = GlobalKey<FormState>();
+  final _title = TextEditingController();
+  final _description = TextEditingController();
+  final _imagePicker = ImagePicker();
+  MaintenancePriority _priority = MaintenancePriority.medium;
+  var _attachments = <String>[];
+
+  @override
+  void dispose() {
+    _title.dispose();
+    _description.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final tenancy = widget.tenancy;
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: scheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+          border: Border(top: BorderSide(color: scheme.outlineVariant)),
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
+          child: Form(
+            key: _key,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: scheme.outlineVariant,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const SizedBox(width: 42, height: 4),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: scheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Icon(Icons.build_outlined, color: scheme.primary),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'New maintenance request',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          tenancy.propertyTitle,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: scheme.onSurface.withValues(alpha: .66),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ]),
+                const SizedBox(height: 16),
+                RentraInfoPanel(
+                  title: 'Request location',
+                  icon: Icons.home_repair_service_outlined,
+                  children: [
+                    RentraInfoRow(
+                      icon: Icons.home_work_outlined,
+                      label: 'Property',
+                      value: tenancy.propertyTitle,
+                    ),
+                    RentraInfoRow(
+                      icon: Icons.person_outline,
+                      label: 'Renter',
+                      value: tenancy.renterName.isEmpty
+                          ? 'Current renter'
+                          : tenancy.renterName,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                TextFormField(
+                  controller: _title,
+                  decoration: const InputDecoration(
+                    labelText: 'Title',
+                    prefixIcon: Icon(Icons.title_outlined),
+                  ),
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? 'Title is required'
+                      : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _description,
+                  maxLines: 4,
+                  decoration: const InputDecoration(
+                    labelText: 'Description',
+                    prefixIcon: Icon(Icons.notes_outlined),
+                  ),
+                  validator: (value) => (value?.trim().length ?? 0) < 10
+                      ? 'Write at least 10 characters'
+                      : null,
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<MaintenancePriority>(
+                  initialValue: _priority,
+                  decoration: const InputDecoration(
+                    labelText: 'Priority',
+                    prefixIcon: Icon(Icons.flag_outlined),
+                  ),
+                  items: MaintenancePriority.values
+                      .where((item) => item != MaintenancePriority.unknown)
+                      .map((item) => DropdownMenuItem(
+                          value: item, child: Text(item.displayLabel)))
+                      .toList(),
+                  onChanged: (value) {
+                    if (value == null) return;
+                    setState(() => _priority = value);
+                  },
+                ),
+                const SizedBox(height: 12),
+                RentraInfoPanel(
+                  title: 'Attach photos',
+                  icon: Icons.add_photo_alternate_outlined,
+                  children: const [
+                    RentraInfoRow(
+                      icon: Icons.info_outline,
+                      label: 'Allowed',
+                      value:
+                          'JPG, PNG, or WebP images under 2 MB. Max 6 photos.',
+                    ),
+                  ],
+                ),
+                Row(children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _attachments.length >= _maxAttachments
+                          ? null
+                          : () => _guardAttachmentPick(_pickFromCamera),
+                      icon: const Icon(Icons.photo_camera_outlined),
+                      label: const Text('Camera'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: _attachments.length >= _maxAttachments
+                          ? null
+                          : () => _guardAttachmentPick(_pickFromGallery),
+                      icon: const Icon(Icons.photo_library_outlined),
+                      label: const Text('Gallery'),
+                    ),
+                  ),
+                ]),
+                if (_attachments.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final path in _attachments)
+                        InputChip(
+                          avatar: const Icon(Icons.image_outlined, size: 18),
+                          label: Text(
+                            _fileName(path),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          onDeleted: () =>
+                              setState(() => _attachments.remove(path)),
+                        ),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: 18),
+                Row(children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: _submit,
+                      icon: const Icon(Icons.send_outlined),
+                      label: const Text('Create'),
+                    ),
+                  ),
+                ]),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _guardAttachmentPick(Future<void> Function() pick) async {
+    try {
+      await pick();
+    } catch (_) {
+      if (!mounted) return;
+      showActionMessage(
+        context,
+        'Could not open photos. Check camera and gallery permissions.',
+      );
+    }
+  }
+
+  Future<void> _pickFromCamera() async {
+    final photo = await _imagePicker.pickImage(
+      source: ImageSource.camera,
+      maxWidth: 1600,
+      maxHeight: 1600,
+      imageQuality: 68,
+    );
+    if (photo == null) return;
+    await _addAttachmentPaths([photo.path]);
+  }
+
+  Future<void> _pickFromGallery() async {
+    final images = await _imagePicker.pickMultiImage(
+      maxWidth: 1600,
+      maxHeight: 1600,
+      imageQuality: 68,
+    );
+    if (!mounted || images.isEmpty) return;
+    await _addAttachmentPaths(images.map((image) => image.path).toList());
+  }
+
+  Future<void> _addAttachmentPaths(List<String> paths) async {
+    final accepted = <String>[];
+    final rejected = <String>[];
+    final existing = _attachments.toSet();
+    for (final path in paths) {
+      final name = _fileName(path);
+      final extension =
+          name.contains('.') ? name.split('.').last.toLowerCase() : '';
+      final length = await File(path).length().catchError((_) => -1);
+      if (!_allowedAttachmentExtensions.contains(extension) ||
+          length < 0 ||
+          length > _maxAttachmentBytes ||
+          existing.contains(path) ||
+          _attachments.length + accepted.length >= _maxAttachments) {
+        rejected.add(name);
+      } else {
+        accepted.add(path);
+      }
+    }
+    if (!mounted) return;
+    setState(() {
+      _attachments = [..._attachments, ...accepted];
+    });
+    if (rejected.isNotEmpty) {
+      showActionMessage(
+        context,
+        'Some photos were skipped. Use JPG, PNG, or WebP under 2 MB. Max 6 photos.',
+      );
+    }
+  }
+
+  void _submit() {
+    if (!(_key.currentState?.validate() ?? false)) return;
+    Navigator.pop(
+      context,
+      _MaintenanceDraft(
+        title: _title.text.trim(),
+        description: _description.text.trim(),
+        priority: _priority,
+        attachments: _attachments,
+      ),
+    );
+  }
+
+  String _fileName(String path) => path.split(Platform.pathSeparator).last;
 }
 
 String _date(DateTime value) =>

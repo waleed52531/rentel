@@ -86,10 +86,11 @@ class AppApiClient {
           'No network connection. Check your connection and try again.',
           type: AppErrorType.network);
     } on http.ClientException {
-      throw const AppException('Unable to connect to Rentra. Please try again.',
+      throw const AppException(
+          'Unable to connect to Homvaro. Please try again.',
           type: AppErrorType.network);
     } on FormatException {
-      throw const AppException('Rentra returned an invalid response.',
+      throw const AppException('Homvaro returned an invalid response.',
           type: AppErrorType.network);
     }
   }
@@ -128,7 +129,10 @@ class AppApiClient {
       throw const AppException('A selected file is no longer available.',
           type: AppErrorType.validation);
     } on http.ClientException {
-      throw const AppException('Unable to upload files to Rentra.',
+      throw const AppException('Unable to upload files to Homvaro.',
+          type: AppErrorType.network);
+    } on FormatException {
+      throw const AppException('Homvaro returned an invalid upload response.',
           type: AppErrorType.network);
     }
   }
@@ -139,7 +143,9 @@ class AppApiClient {
       final value = jsonDecode(body);
       if (value is Map) decoded = Map<String, dynamic>.from(value);
     }
-    if (statusCode >= 200 && statusCode < 300) return decoded;
+    if (statusCode >= 200 && statusCode < 300) {
+      return _normalizeResponseUrls(decoded);
+    }
     final errors = <String, List<String>>{};
     final rawErrors = decoded['errors'];
     if (rawErrors is Map) {
@@ -153,6 +159,45 @@ class AppApiClient {
     if (statusCode == 401) _unauthorizedController.add(null);
     throw AppException.fromStatusCode(statusCode,
         message: decoded['message']?.toString(), errors: errors);
+  }
+
+  Map<String, dynamic> _normalizeResponseUrls(Map<String, dynamic> value) =>
+      Map<String, dynamic>.from(_normalizeValue(value) as Map);
+
+  Object? _normalizeValue(Object? value) {
+    if (value is Map) {
+      return {
+        for (final entry in value.entries)
+          entry.key.toString(): _normalizeValue(entry.value),
+      };
+    }
+    if (value is List) {
+      return value.map(_normalizeValue).toList(growable: false);
+    }
+    if (value is String) return _normalizeStorageUrl(value);
+    return value;
+  }
+
+  String _normalizeStorageUrl(String value) {
+    final uri = Uri.tryParse(value);
+    if (uri == null || !uri.hasScheme || uri.host.isEmpty) return value;
+    if (!uri.path.startsWith('/storage/')) return value;
+
+    final baseUri = Uri.parse(_baseUrl);
+    final shouldRewrite = uri.host == '127.0.0.1' ||
+        uri.host == 'localhost' ||
+        uri.host == '0.0.0.0' ||
+        uri.host.startsWith('192.168.') ||
+        uri.host.startsWith('172.');
+    if (!shouldRewrite) return value;
+
+    return uri
+        .replace(
+          scheme: baseUri.scheme,
+          host: baseUri.host,
+          port: baseUri.hasPort ? baseUri.port : null,
+        )
+        .toString();
   }
 
   Map<String, dynamic> _data(Map<String, dynamic> envelope) =>
@@ -247,6 +292,10 @@ class AppApiClient {
           await request('/applications',
               token: token, query: {'page': page, 'per_page': perPage}),
           RentalApplication.fromJson);
+  Future<RentalApplication> application(
+          String token, String applicationId) async =>
+      RentalApplication.fromJson(
+          _data(await request('/applications/$applicationId', token: token)));
   Future<RentalApplication> apply(String token, String propertyId,
           {required String message, String contactPhone = ''}) async =>
       RentalApplication.fromJson(_data(await request(
@@ -389,20 +438,35 @@ class AppApiClient {
       MaintenanceRequest.fromJson(
           _data(await request('/maintenance-requests/$id', token: token)));
   Future<MaintenanceRequest> createMaintenance(String token,
-          {required String tenancyId,
-          required String title,
-          required String description,
-          required MaintenancePriority priority,
-          List<String> attachmentPaths = const []}) async =>
-      MaintenanceRequest.fromJson(
-          _data(await multipart('/maintenance-requests', token: token, fields: {
-        'tenancy_id': tenancyId,
-        'title': title,
-        'description': description,
-        'priority': enumWireValue(priority)
-      }, files: {
-        'attachments': attachmentPaths
-      })));
+      {required String tenancyId,
+      required String title,
+      required String description,
+      required MaintenancePriority priority,
+      List<String> attachmentPaths = const []}) async {
+    final fields = {
+      'tenancy_id': tenancyId,
+      'title': title,
+      'description': description,
+      'priority': enumWireValue(priority)
+    };
+    if (attachmentPaths.isEmpty) {
+      return MaintenanceRequest.fromJson(_data(await request(
+          '/maintenance-requests',
+          token: token,
+          method: 'POST',
+          body: fields)));
+    }
+    return MaintenanceRequest.fromJson(
+        _data(await multipart('/maintenance-requests', token: token, fields: {
+      'tenancy_id': tenancyId,
+      'title': title,
+      'description': description,
+      'priority': enumWireValue(priority)
+    }, files: {
+      'attachments': attachmentPaths
+    })));
+  }
+
   Future<MaintenanceRequest> updateMaintenanceStatus(
           String token, String id, MaintenanceStatus status,
           {String comment = ''}) async =>

@@ -34,6 +34,7 @@ ThemeData buildAppTheme({Brightness brightness = Brightness.light}) {
     outlineVariant: dark ? const Color(0xff253146) : const Color(0xffedf1f6),
   );
   final bodyColor = dark ? const Color(0xffcbd5e1) : const Color(0xff334155);
+  final mutedColor = dark ? const Color(0xff94a3b8) : const Color(0xff64748b);
   final borderColor = dark ? const Color(0xff334155) : const Color(0xffe2e8f0);
   final subtleFill = dark ? const Color(0xff172033) : const Color(0xfff8fafc);
   final textTheme = Typography.material2021(platform: TargetPlatform.android)
@@ -45,19 +46,33 @@ ThemeData buildAppTheme({Brightness brightness = Brightness.light}) {
       .copyWith(
         headlineMedium: TextStyle(
           color: scheme.onSurface,
-          fontSize: 28,
-          fontWeight: FontWeight.w800,
-          height: 1.12,
+          fontSize: 25,
+          fontWeight: FontWeight.w900,
+          height: 1.08,
         ),
         titleLarge: TextStyle(
           color: scheme.onSurface,
-          fontSize: 21,
+          fontSize: 19,
           fontWeight: FontWeight.w800,
+          height: 1.16,
         ),
         titleMedium: TextStyle(
           color: scheme.onSurface,
           fontSize: 16,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w800,
+          height: 1.18,
+        ),
+        bodyMedium: TextStyle(
+          color: bodyColor,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          height: 1.3,
+        ),
+        bodySmall: TextStyle(
+          color: mutedColor,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          height: 1.25,
         ),
         labelLarge: const TextStyle(
           fontSize: 14,
@@ -77,17 +92,18 @@ ThemeData buildAppTheme({Brightness brightness = Brightness.light}) {
       backgroundColor: dark ? darkBackground : lightBackground,
       foregroundColor: scheme.onSurface,
       surfaceTintColor: Colors.transparent,
+      toolbarHeight: 68,
       titleTextStyle: TextStyle(
         color: scheme.onSurface,
-        fontSize: 20,
-        fontWeight: FontWeight.w800,
+        fontSize: 18,
+        fontWeight: FontWeight.w900,
       ),
     ),
     cardTheme: CardThemeData(
-      elevation: 0,
-      margin: const EdgeInsets.only(bottom: 12),
+      elevation: dark ? 0 : 1,
+      margin: const EdgeInsets.only(bottom: 10),
       color: scheme.surface,
-      shadowColor: Colors.black.withValues(alpha: dark ? .28 : .08),
+      shadowColor: Colors.black.withValues(alpha: dark ? .18 : .06),
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         side: BorderSide(color: borderColor),
@@ -98,7 +114,7 @@ ThemeData buildAppTheme({Brightness brightness = Brightness.light}) {
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: subtleFill,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       labelStyle: TextStyle(color: bodyColor, fontWeight: FontWeight.w600),
       prefixIconColor: dark ? const Color(0xff94a3b8) : const Color(0xff64748b),
       suffixIconColor: dark ? const Color(0xff94a3b8) : const Color(0xff64748b),
@@ -119,7 +135,8 @@ ThemeData buildAppTheme({Brightness brightness = Brightness.light}) {
       style: FilledButton.styleFrom(
         backgroundColor: scheme.primary,
         foregroundColor: scheme.onPrimary,
-        minimumSize: const Size(0, 50),
+        minimumSize: const Size(0, 46),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         elevation: 0,
         textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -129,6 +146,7 @@ ThemeData buildAppTheme({Brightness brightness = Brightness.light}) {
       style: ElevatedButton.styleFrom(
         backgroundColor: scheme.primary,
         foregroundColor: scheme.onPrimary,
+        minimumSize: const Size(0, 46),
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
@@ -137,6 +155,8 @@ ThemeData buildAppTheme({Brightness brightness = Brightness.light}) {
       style: OutlinedButton.styleFrom(
         foregroundColor: scheme.primary,
         side: BorderSide(color: scheme.primary, width: 1.4),
+        minimumSize: const Size(0, 46),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
@@ -149,14 +169,14 @@ ThemeData buildAppTheme({Brightness brightness = Brightness.light}) {
     ),
     navigationBarTheme: NavigationBarThemeData(
       elevation: 0,
-      height: 72,
+      height: 66,
       backgroundColor: dark ? darkSurface : Colors.white,
       indicatorColor: scheme.primaryContainer,
       surfaceTintColor: Colors.transparent,
       labelTextStyle: WidgetStateProperty.resolveWith((states) {
         final selected = states.contains(WidgetState.selected);
         return TextStyle(
-          fontSize: 11,
+          fontSize: 10.5,
           fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
           color: selected ? scheme.primary : bodyColor,
         );
@@ -164,7 +184,7 @@ ThemeData buildAppTheme({Brightness brightness = Brightness.light}) {
       iconTheme: WidgetStateProperty.resolveWith((states) {
         final selected = states.contains(WidgetState.selected);
         return IconThemeData(
-          size: 23,
+          size: 22,
           color: selected ? scheme.primary : bodyColor,
         );
       }),

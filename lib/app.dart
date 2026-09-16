@@ -50,7 +50,7 @@ class RentSettlementApp extends StatelessWidget {
           child: BlocBuilder<AppPreferencesCubit, AppPreferencesState>(
             builder: (context, preferences) => MaterialApp(
               navigatorKey: rentraNavigatorKey,
-              title: 'Rentra',
+              title: 'Homvaro',
               debugShowCheckedModeBanner: false,
               theme: buildAppTheme(),
               darkTheme: buildAppTheme(brightness: Brightness.dark),

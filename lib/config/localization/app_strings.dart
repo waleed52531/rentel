@@ -27,9 +27,9 @@ extension AppStringsX on BuildContext {
 const _urdu = <String, String>{
   'Proof • Approval • Frozen History': 'ثبوت • منظوری • محفوظ ریکارڈ',
   'Proof - Approval - Frozen History': 'ثبوت - منظوری - محفوظ ریکارڈ',
-  'Rentra login': 'رینٹرا لاگ اِن',
-  'Sign in with your email and password. Rentra will open the right workspace for your account.':
-      'اپنے ای میل اور پاس ورڈ سے لاگ اِن کریں۔ رینٹرا آپ کے اکاؤنٹ کے مطابق درست ورک اسپیس کھول دے گا۔',
+  'Homvaro login': 'ہوموارو لاگ اِن',
+  'Sign in with your email and password. Homvaro will open the right workspace for your account.':
+      'اپنے ای میل اور پاس ورڈ سے لاگ اِن کریں۔ ہوموارو آپ کے اکاؤنٹ کے مطابق درست ورک اسپیس کھول دے گا۔',
   'Email': 'ای میل',
   'Password': 'پاس ورڈ',
   'Enter your email': 'اپنا ای میل درج کریں',
@@ -37,21 +37,21 @@ const _urdu = <String, String>{
   'Sign in': 'لاگ اِن',
   'Profile': 'پروفائل',
   'No active profile': 'کوئی فعال پروفائل نہیں',
-  'Rentra user': 'رینٹرا صارف',
+  'Homvaro user': 'ہوموارو صارف',
   'Owner': 'مالک',
   'Renter': 'کرایہ دار',
   'Language': 'زبان',
   'English': 'English',
   'Urdu': 'اردو',
   'Theme': 'تھیم',
-  'Choose how Rentra looks': 'رینٹرا کی ظاہری شکل منتخب کریں',
+  'Choose how Homvaro looks': 'ہوموارو کی ظاہری شکل منتخب کریں',
   'System': 'سسٹم',
   'Light': 'لائٹ',
   'Dark': 'ڈارک',
   'App version': 'ایپ ورژن',
   'Privacy policy': 'پرائیویسی پالیسی',
-  'Rentra uses your account, property, tenancy, payment-record, maintenance, and notification data only to operate the rental management workflows provided by the connected Laravel API.':
-      'رینٹرا آپ کے اکاؤنٹ، پراپرٹی، کرایہ داری، ادائیگی ریکارڈ، مینٹیننس اور نوٹیفکیشن ڈیٹا کو صرف منسلک Laravel API کے رینٹل مینجمنٹ ورک فلو چلانے کے لیے استعمال کرتا ہے۔',
+  'Homvaro uses your account, property, tenancy, payment-record, maintenance, and notification data only to operate the rental management workflows provided by the connected Laravel API.':
+      'ہوموارو آپ کے اکاؤنٹ، پراپرٹی، کرایہ داری، ادائیگی ریکارڈ، مینٹیننس اور نوٹیفکیشن ڈیٹا کو صرف منسلک Laravel API کے رینٹل مینجمنٹ ورک فلو چلانے کے لیے استعمال کرتا ہے۔',
   'Close': 'بند کریں',
   'Logout': 'لاگ آؤٹ',
   'Properties': 'پراپرٹیز',

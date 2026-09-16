@@ -5,6 +5,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:rent_settlement_app/config/localization/app_strings.dart';
 import 'package:rent_settlement_app/bloc/auth/auth_bloc.dart';
 import 'package:rent_settlement_app/bloc/auth/auth_state.dart';
+import 'package:rent_settlement_app/bloc/notifications/notifications_bloc.dart';
+import 'package:rent_settlement_app/bloc/notifications/notifications_event.dart';
+import 'package:rent_settlement_app/bloc/notifications/notifications_state.dart';
 import 'package:rent_settlement_app/bloc/owner/applications/owner_applications_bloc.dart';
 import 'package:rent_settlement_app/bloc/owner/applications/owner_applications_event.dart';
 import 'package:rent_settlement_app/bloc/owner/applications/owner_applications_state.dart';
@@ -61,6 +64,9 @@ class OwnerDashboardScreen extends StatelessWidget {
       BlocProvider(
           create: (_) => OwnerMaintenanceBloc(repository)
             ..add(const OwnerMaintenanceRequested())),
+      BlocProvider(
+          create: (_) => NotificationsBloc(repository)
+            ..add(const NotificationsRequested(unreadOnly: true))),
     ], child: const _OwnerShell());
   }
 }
@@ -82,7 +88,7 @@ class _OwnerShell extends StatefulWidget {
   State<_OwnerShell> createState() => _OwnerShellState();
 }
 
-class _OwnerShellState extends State<_OwnerShell> {
+class _OwnerShellState extends State<_OwnerShell> with WidgetsBindingObserver {
   int index = 0;
   static const pages = [
     OwnerPropertiesView(),
@@ -91,6 +97,26 @@ class _OwnerShellState extends State<_OwnerShell> {
     OwnerMonthlyRecordsView(),
     OwnerMaintenanceView()
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _refreshWorkspace();
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(
@@ -99,13 +125,23 @@ class _OwnerShellState extends State<_OwnerShell> {
               subtitle: 'Owner workspace',
             ),
             actions: [
-              RentraChromeButton(
-                  tooltip: 'Notifications',
-                  onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute<void>(
-                          builder: (_) => const NotificationsScreen())),
-                  icon: Icons.notifications_outlined),
+              BlocBuilder<NotificationsBloc, NotificationsState>(
+                  builder: (context, state) {
+                final unread = state is NotificationsLoaded
+                    ? state.items.length
+                    : state is NotificationsEmpty
+                        ? 0
+                        : 0;
+                return RentraChromeButton(
+                    tooltip: unread > 0
+                        ? '$unread unread notification${unread == 1 ? '' : 's'}'
+                        : 'Notifications',
+                    onPressed: _openNotifications,
+                    badgeCount: unread,
+                    icon: unread > 0
+                        ? Icons.notifications_active_outlined
+                        : Icons.notifications_outlined);
+              }),
               RentraChromeButton(
                   tooltip: 'Profile',
                   onPressed: () => Navigator.push(
@@ -117,7 +153,17 @@ class _OwnerShellState extends State<_OwnerShell> {
         body: SafeArea(child: IndexedStack(index: index, children: pages)),
         bottomNavigationBar: NavigationBar(
             selectedIndex: index,
-            onDestinationSelected: (value) => setState(() => index = value),
+            onDestinationSelected: (value) {
+              setState(() => index = value);
+              context
+                  .read<NotificationsBloc>()
+                  .add(const NotificationsRequested(unreadOnly: true));
+              if (value == 1) {
+                context
+                    .read<OwnerApplicationsBloc>()
+                    .add(const OwnerApplicationsRequested());
+              }
+            },
             destinations: [
               NavigationDestination(
                   icon: const Icon(Icons.home_work_outlined),
@@ -136,6 +182,29 @@ class _OwnerShellState extends State<_OwnerShell> {
                   label: context.tr('Maintenance')),
             ]),
       );
+
+  Future<void> _openNotifications() async {
+    await Navigator.push<void>(context,
+        MaterialPageRoute(builder: (_) => const NotificationsScreen()));
+    if (mounted) {
+      _refreshWorkspace();
+    }
+  }
+
+  void _refreshWorkspace() {
+    context
+        .read<NotificationsBloc>()
+        .add(const NotificationsRequested(unreadOnly: true));
+    context
+        .read<OwnerApplicationsBloc>()
+        .add(const OwnerApplicationsRequested());
+    context.read<OwnerTenanciesBloc>().add(const OwnerTenanciesRequested());
+    context
+        .read<OwnerMonthlyRecordsBloc>()
+        .add(const OwnerMonthlyRecordsRequested());
+    context.read<OwnerMaintenanceBloc>().add(const OwnerMaintenanceRequested());
+    context.read<OwnerPropertiesBloc>().add(const OwnerPropertiesRequested());
+  }
 
   String _title(BuildContext context, int index) => [
         context.tr('Properties'),
@@ -1315,7 +1384,8 @@ class OwnerMonthlyRecordsView extends StatelessWidget {
             SizedBox(height: 16),
             FeatureEmpty(
                 title: 'No monthly records',
-                message: 'Renter monthly submissions will appear here.',
+                message:
+                    'Submitted renter records will appear here. Drafts stay with the renter until proof is attached and submitted.',
                 icon: Icons.receipt_long_outlined),
           ]);
         }

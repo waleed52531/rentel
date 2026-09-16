@@ -18,13 +18,7 @@ class ApplicationDetailBloc
       Emitter<ApplicationDetailState> emit) async {
     emit(const ApplicationDetailLoading());
     try {
-      final applications = await _repository.getApplications();
-      final application =
-          applications.where((item) => item.id == event.id).firstOrNull;
-      if (application == null) {
-        throw const AppException('The application could not be found.',
-            type: AppErrorType.notFound);
-      }
+      final application = await _repository.getApplication(event.id);
       emit(ApplicationDetailLoaded(application));
     } catch (error) {
       emit(ApplicationDetailFailure(readableError(error)));

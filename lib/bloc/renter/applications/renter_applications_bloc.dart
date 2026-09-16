@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:rent_settlement_app/data/errors/app_exception.dart';
+import 'package:rent_settlement_app/model/entities.dart';
 import 'package:rent_settlement_app/repository/rental_repository.dart';
 import 'package:rent_settlement_app/bloc/renter/applications/renter_applications_event.dart';
 import 'package:rent_settlement_app/bloc/renter/applications/renter_applications_state.dart';
@@ -33,12 +34,34 @@ class RenterApplicationsBloc
   Future<void> _refresh(Emitter<RenterApplicationsState> emit,
       {String? message}) async {
     try {
-      final items = await _repository.getApplications();
+      var items = await _repository.getApplications();
+      if (items.isEmpty) {
+        items = await _applicationsFromNotifications();
+      }
       emit(items.isEmpty
           ? const RenterApplicationsEmpty()
           : RenterApplicationsLoaded(items, message: message));
     } catch (error) {
       emit(RenterApplicationsError(readableError(error)));
     }
+  }
+
+  Future<List<RentalApplication>> _applicationsFromNotifications() async {
+    final notifications = await _repository.getNotifications(unread: false);
+    final ids = <String>{
+      for (final item in notifications)
+        if (item.data['application_id'] != null)
+          item.data['application_id'].toString(),
+    }.where((id) => id.isNotEmpty).toList();
+
+    final applications = <RentalApplication>[];
+    for (final id in ids) {
+      try {
+        applications.add(await _repository.getApplication(id));
+      } catch (_) {
+        // A notification can outlive access to its record; ignore stale links.
+      }
+    }
+    return applications;
   }
 }

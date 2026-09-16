@@ -1,6 +1,6 @@
-# Rentra Flutter App
+# Homvaro Flutter App
 
-Rentra is a Material 3 Flutter client for the Laravel rental-management API in
+Homvaro is a Material 3 Flutter client for the Laravel rental-management API in
 `../Rentra`. The production app uses explicit Bloc events and states, a
 centralized HTTP client, Laravel Sanctum bearer authentication, and secure token
 storage. It does not fall back to local or generated data.

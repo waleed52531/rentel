@@ -31,13 +31,13 @@ class EntityStatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
         child: Text(
           status.displayLabel,
           style: TextStyle(
             color: foreground,
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
+            fontSize: 10.5,
+            fontWeight: FontWeight.w900,
           ),
         ),
       ),

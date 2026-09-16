@@ -32,7 +32,7 @@ class PropertyCard extends StatelessWidget {
         onTap: onTap,
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           SizedBox(
-            height: 154,
+            height: 148,
             width: double.infinity,
             child: Stack(children: [
               Positioned.fill(
@@ -57,7 +57,7 @@ class PropertyCard extends StatelessWidget {
                       end: Alignment.bottomCenter,
                       colors: [
                         Colors.black.withValues(alpha: .08),
-                        Colors.black.withValues(alpha: .46),
+                        Colors.black.withValues(alpha: .52),
                       ],
                     ),
                   ),
@@ -82,7 +82,7 @@ class PropertyCard extends StatelessWidget {
             ]),
           ),
           Padding(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.fromLTRB(14, 13, 14, 14),
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(
@@ -107,7 +107,7 @@ class PropertyCard extends StatelessWidget {
                   ),
                 ),
               ]),
-              const SizedBox(height: 12),
+              const SizedBox(height: 11),
               Row(children: [
                 Expanded(
                   child: Text(
@@ -115,6 +115,7 @@ class PropertyCard extends StatelessWidget {
                     style: theme.textTheme.titleMedium?.copyWith(
                       color: scheme.primary,
                       fontWeight: FontWeight.w900,
+                      height: 1.1,
                     ),
                   ),
                 ),
@@ -146,6 +147,7 @@ class _ImagePill extends StatelessWidget {
   Widget build(BuildContext context) => DecoratedBox(
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: .92),
+          border: Border.all(color: Colors.white.withValues(alpha: .34)),
           borderRadius: BorderRadius.circular(999),
         ),
         child: Padding(
@@ -178,6 +180,7 @@ class _Metric extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest,
+        border: Border.all(color: scheme.outlineVariant),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Padding(

@@ -13,6 +13,7 @@ abstract interface class RentalRepository {
   Future<RentalProperty> getListing(String id);
 
   Future<List<RentalApplication>> getApplications();
+  Future<RentalApplication> getApplication(String id);
   Future<RentalApplication> apply(String propertyId, String message,
       {String contactPhone});
   Future<void> updateApplicationStatus(
@@ -135,6 +136,10 @@ class ApiRentalRepository implements RentalRepository {
     final token = await _token();
     return _allPages((page) => apiClient.applications(token, page: page));
   }
+
+  @override
+  Future<RentalApplication> getApplication(String id) async =>
+      apiClient.application(await _token(), id);
 
   @override
   Future<RentalApplication> apply(String propertyId, String message,

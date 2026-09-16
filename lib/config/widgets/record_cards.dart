@@ -27,6 +27,7 @@ class ApplicationCard extends StatelessWidget {
               application.message,
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
           ],
           if (application.ownerNote.isNotEmpty) ...[
@@ -157,6 +158,7 @@ class MaintenanceCard extends StatelessWidget {
             request.description,
             maxLines: 3,
             overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodyMedium,
           ),
           if (request.attachments.isNotEmpty)
             _MetaLine(
@@ -204,7 +206,7 @@ class _RecordShell extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(15),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -215,10 +217,10 @@ class _RecordShell extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.all(9),
+                    padding: const EdgeInsets.all(8),
                     child: Icon(
                       icon,
-                      size: 20,
+                      size: 19,
                       color: scheme.primary,
                     ),
                   ),
@@ -229,14 +231,16 @@ class _RecordShell extends StatelessWidget {
                     title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleMedium,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 status,
               ]),
               if (children.isNotEmpty) ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 ...children,
               ],
             ],
@@ -261,7 +265,7 @@ class _MetaLine extends StatelessWidget {
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Icon(
           icon,
-          size: 16,
+          size: 15,
           color: scheme.secondary,
         ),
         const SizedBox(width: 7),

@@ -8,6 +8,7 @@ import 'package:rent_settlement_app/model/entities.dart';
 import 'package:rent_settlement_app/repository/rental_repository.dart';
 import 'package:rent_settlement_app/config/widgets/entity_status_badge.dart';
 import 'package:rent_settlement_app/config/widgets/feature_states.dart';
+import 'package:rent_settlement_app/config/widgets/rentra_dashboard_widgets.dart';
 
 enum MonthlyReviewAction { approve, reject, reopen }
 
@@ -57,55 +58,86 @@ class _Detail extends StatelessWidget {
   Widget build(BuildContext context) => ListView(
         padding: const EdgeInsets.all(18),
         children: [
-          Row(children: [
-            Expanded(
-                child: Text('${record.month} · ${record.propertyTitle}',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleLarge
-                        ?.copyWith(fontWeight: FontWeight.bold))),
-            EntityStatusBadge(status: record.status)
-          ]),
-          if (record.isFrozen)
-            const Padding(
-                padding: EdgeInsets.only(top: 6),
-                child: Text('Approved and frozen',
-                    style: TextStyle(
-                        color: Colors.teal, fontWeight: FontWeight.bold))),
-          const SizedBox(height: 12),
-          ...record.amounts.entries.map((entry) => ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(entry.key.displayLabel),
-              trailing: Text(
-                  '${record.currency} ${entry.value.toStringAsFixed(2)}'))),
-          const Divider(),
-          Text(
-              'Total: ${record.currency} ${record.totalAmount.toStringAsFixed(2)}',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.bold)),
-          if (record.notes.isNotEmpty) Text('Notes: ${record.notes}'),
-          if (record.rejectionReason.isNotEmpty)
-            Text('Rejection: ${record.rejectionReason}',
-                style: const TextStyle(color: Colors.red)),
-          const SizedBox(height: 18),
-          Text('Proofs (${record.proofs.length})',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.bold)),
-          if (record.proofs.isEmpty)
-            const Text('No proofs attached.')
-          else
-            ...record.proofs.map((proof) => Card(
-                child: ListTile(
-                    leading: Icon(proof.isImage
-                        ? Icons.image_outlined
-                        : Icons.picture_as_pdf_outlined),
-                    title: Text(proof.originalName),
-                    subtitle: Text(
-                        '${proof.category.displayLabel} · ${proof.mimeType}')))),
+          RentraDetailHero(
+            title: '${record.month} | ${record.propertyTitle}',
+            subtitle:
+                record.isFrozen ? 'Approved and frozen' : 'Monthly rent record',
+            icon: Icons.receipt_long_outlined,
+            status: EntityStatusBadge(status: record.status),
+            metrics: [
+              RentraMetricData(
+                label: 'Total',
+                value:
+                    '${record.currency} ${record.totalAmount.toStringAsFixed(0)}',
+                icon: Icons.payments_outlined,
+              ),
+              RentraMetricData(
+                label: 'Proofs',
+                value: '${record.proofs.length}',
+                icon: Icons.attach_file_outlined,
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          RentraInfoPanel(
+            title: 'Amount breakdown',
+            icon: Icons.account_balance_wallet_outlined,
+            children: [
+              ...record.amounts.entries.map((entry) => RentraInfoRow(
+                    icon: Icons.payments_outlined,
+                    label: entry.key.displayLabel,
+                    value:
+                        '${record.currency} ${entry.value.toStringAsFixed(2)}',
+                  )),
+              RentraInfoRow(
+                icon: Icons.summarize_outlined,
+                label: 'Total',
+                value:
+                    '${record.currency} ${record.totalAmount.toStringAsFixed(2)}',
+              ),
+            ],
+          ),
+          if (record.notes.isNotEmpty || record.rejectionReason.isNotEmpty)
+            RentraInfoPanel(
+              title: 'Notes',
+              icon: Icons.notes_outlined,
+              children: [
+                if (record.notes.isNotEmpty)
+                  RentraInfoRow(
+                    icon: Icons.notes_outlined,
+                    label: 'Notes',
+                    value: record.notes,
+                  ),
+                if (record.rejectionReason.isNotEmpty)
+                  RentraInfoRow(
+                    icon: Icons.error_outline,
+                    label: 'Rejection',
+                    value: record.rejectionReason,
+                  ),
+              ],
+            ),
+          RentraInfoPanel(
+            title: 'Proofs (${record.proofs.length})',
+            icon: Icons.verified_outlined,
+            children: record.proofs.isEmpty
+                ? const [
+                    RentraInfoRow(
+                      icon: Icons.folder_off_outlined,
+                      label: 'Files',
+                      value: 'No proofs attached.',
+                    )
+                  ]
+                : record.proofs
+                    .map((proof) => RentraInfoRow(
+                          icon: proof.isImage
+                              ? Icons.image_outlined
+                              : Icons.picture_as_pdf_outlined,
+                          label: proof.originalName,
+                          value:
+                              '${proof.category.displayLabel} | ${proof.mimeType}',
+                        ))
+                    .toList(),
+          ),
           if (canReview && record.status == MonthlyRecordStatus.pending) ...[
             const SizedBox(height: 18),
             Row(children: [

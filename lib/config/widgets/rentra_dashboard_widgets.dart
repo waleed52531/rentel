@@ -66,7 +66,7 @@ class RentraBrandLockup extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'Rentra',
+            'Homvaro',
             style: (compact
                     ? Theme.of(context).textTheme.titleLarge
                     : Theme.of(context).textTheme.headlineMedium)
@@ -148,15 +148,25 @@ class RentraChromeButton extends StatelessWidget {
     required this.icon,
     required this.onPressed,
     this.tooltip,
+    this.badgeCount = 0,
   });
 
   final IconData icon;
   final VoidCallback onPressed;
   final String? tooltip;
+  final int badgeCount;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final buttonIcon = badgeCount > 0
+        ? Badge.count(
+            count: badgeCount > 99 ? 99 : badgeCount,
+            backgroundColor: scheme.secondary,
+            textColor: scheme.onSecondary,
+            child: Icon(icon),
+          )
+        : Icon(icon);
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: IconButton(
@@ -166,9 +176,11 @@ class RentraChromeButton extends StatelessWidget {
           backgroundColor: scheme.surface,
           foregroundColor: scheme.onSurface,
           side: BorderSide(color: scheme.outlineVariant),
+          minimumSize: const Size.square(44),
+          fixedSize: const Size.square(44),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
-        icon: Icon(icon),
+        icon: buttonIcon,
       ),
     );
   }
@@ -194,85 +206,110 @@ class RentraDashboardHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final dark = theme.brightness == Brightness.dark;
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            scheme.primary,
-            Color.lerp(scheme.primary, scheme.secondary, .46)!,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color.lerp(scheme.primary, Colors.black, dark ? .18 : .04)!,
+              Color.lerp(scheme.primary, scheme.secondary, .42)!,
+            ],
+          ),
+          border: Border.all(color: Colors.white.withValues(alpha: .14)),
+          boxShadow: [
+            BoxShadow(
+              color: scheme.primary.withValues(alpha: dark ? .16 : .14),
+              blurRadius: 22,
+              offset: const Offset(0, 12),
+            ),
           ],
         ),
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: scheme.primary.withValues(alpha: .18),
-            blurRadius: 28,
-            offset: const Offset(0, 16),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            DecoratedBox(
+        child: Stack(children: [
+          Positioned(
+            right: -36,
+            top: -58,
+            child: DecoratedBox(
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: .18),
-                border: Border.all(color: Colors.white.withValues(alpha: .26)),
-                borderRadius: BorderRadius.circular(8),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white.withValues(alpha: .11)),
               ),
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Icon(icon, color: Colors.white, size: 24),
-              ),
+              child: const SizedBox.square(dimension: 150),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                    ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: .18),
+                    border:
+                        Border.all(color: Colors.white.withValues(alpha: .26)),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: .82),
-                      height: 1.25,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(9),
+                    child: Icon(icon, color: Colors.white, size: 22),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.headlineMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 25,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: .82),
+                          height: 1.22,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (action != null) ...[
+                  const SizedBox(width: 10),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 116),
+                    child: FittedBox(fit: BoxFit.scaleDown, child: action!),
                   ),
                 ],
-              ),
-            ),
-            if (action != null) ...[
-              const SizedBox(width: 10),
-              action!,
-            ],
-          ]),
-          if (metrics.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            LayoutBuilder(builder: (context, constraints) {
-              final columns = constraints.maxWidth > 560 ? 3 : 2;
-              return GridView.count(
-                crossAxisCount: columns,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-                childAspectRatio: columns == 3 ? 2.35 : 2.2,
-                children: metrics.map(RentraMetricTile.new).toList(),
-              );
-            }),
-          ],
+              ]),
+              if (metrics.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                LayoutBuilder(builder: (context, constraints) {
+                  final columns = constraints.maxWidth > 560 ? 3 : 2;
+                  return GridView.count(
+                    crossAxisCount: columns,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                    childAspectRatio: columns == 3 ? 2.75 : 2.45,
+                    children: metrics.map(RentraMetricTile.new).toList(),
+                  );
+                }),
+              ],
+            ]),
+          ),
         ]),
       ),
     );
@@ -364,9 +401,9 @@ class RentraMetricTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
           child: Row(children: [
-            Icon(metric.icon, color: Colors.white, size: 19),
+            Icon(metric.icon, color: Colors.white, size: 18),
             const SizedBox(width: 9),
             Expanded(
               child: Column(
@@ -379,7 +416,7 @@ class RentraMetricTile extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 18,
+                      fontSize: 17,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -389,7 +426,7 @@ class RentraMetricTile extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: .78),
-                      fontSize: 11,
+                      fontSize: 10.5,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -420,7 +457,12 @@ class RentraSectionTitle extends StatelessWidget {
     return Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
       Expanded(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, style: theme.textTheme.titleLarge),
+          Text(
+            title,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w900,
+            ),
+          ),
           if (subtitle != null) ...[
             const SizedBox(height: 3),
             Text(
@@ -441,6 +483,261 @@ class RentraSectionTitle extends StatelessWidget {
   }
 }
 
+class RentraDetailHero extends StatelessWidget {
+  const RentraDetailHero({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    this.status,
+    this.metrics = const [],
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Widget? status;
+  final List<RentraMetricData> metrics;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        border: Border.all(color: scheme.outlineVariant),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: scheme.primaryContainer,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: Icon(icon, color: scheme.primary, size: 22),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      height: 1.12,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    subtitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: scheme.onSurface.withValues(alpha: .66),
+                      fontWeight: FontWeight.w600,
+                      height: 1.25,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (status != null) ...[
+              const SizedBox(width: 10),
+              status!,
+            ],
+          ]),
+          if (metrics.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            LayoutBuilder(builder: (context, constraints) {
+              final columns = constraints.maxWidth > 560 ? 3 : 2;
+              return GridView.count(
+                crossAxisCount: columns,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: columns == 3 ? 2.75 : 2.5,
+                children: metrics.map(_RentraSoftMetricTile.new).toList(),
+              );
+            }),
+          ],
+        ]),
+      ),
+    );
+  }
+}
+
+class _RentraSoftMetricTile extends StatelessWidget {
+  const _RentraSoftMetricTile(this.metric);
+
+  final RentraMetricData metric;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: .62),
+        border: Border.all(color: scheme.outlineVariant),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Row(children: [
+          Icon(metric.icon, color: scheme.secondary, size: 17),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  metric.value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        height: 1.05,
+                      ),
+                ),
+                Text(
+                  metric.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: scheme.onSurface.withValues(alpha: .6),
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
+                    height: 1.1,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+class RentraInfoPanel extends StatelessWidget {
+  const RentraInfoPanel({
+    super.key,
+    required this.title,
+    required this.icon,
+    required this.children,
+  });
+
+  final String title;
+  final IconData icon;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(15),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: scheme.secondaryContainer.withValues(alpha: .72),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(7),
+                child: Icon(icon, color: scheme.secondary, size: 17),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                title,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ]),
+          const SizedBox(height: 11),
+          ...children,
+        ]),
+      ),
+    );
+  }
+}
+
+class RentraInfoRow extends StatelessWidget {
+  const RentraInfoRow({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 9),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: scheme.primaryContainer.withValues(alpha: .72),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(6),
+            child: Icon(icon, size: 16, color: scheme.primary),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  color: scheme.onSurface.withValues(alpha: .56),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: TextStyle(
+                  color: scheme.onSurface,
+                  fontWeight: FontWeight.w700,
+                  height: 1.25,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
 class RentraQuickActionStrip extends StatelessWidget {
   const RentraQuickActionStrip({
     super.key,
@@ -451,7 +748,7 @@ class RentraQuickActionStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-        height: 108,
+        height: 98,
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
           itemCount: actions.length,
@@ -479,7 +776,7 @@ class RentraQuickAction extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return SizedBox(
-      width: 138,
+      width: 132,
       child: Card(
         child: InkWell(
           onTap: onTap,

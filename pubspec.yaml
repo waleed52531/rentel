@@ -1,5 +1,5 @@
 name: rent_settlement_app
-description: Rentra rental property management app for renters and owners.
+description: Homvaro rental property management app for renters and owners.
 publish_to: 'none'
 version: 0.1.0+1
 
@@ -17,6 +17,7 @@ dependencies:
   flutter_secure_storage: ^9.1.0
   http: ^1.2.2
   file_picker: ^10.3.10
+  image_picker: ^1.1.2
 
 dev_dependencies:
   flutter_test:

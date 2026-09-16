@@ -36,7 +36,7 @@ class AuthRepository {
     final session = await apiClient.login(
       identifier: identifier,
       password: password,
-      deviceName: 'rentra-flutter-${DateTime.now().millisecondsSinceEpoch}',
+      deviceName: 'homvaro-flutter-${DateTime.now().millisecondsSinceEpoch}',
     );
 
     await sessionStore.saveToken(session.token);
