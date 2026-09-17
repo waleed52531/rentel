@@ -1,43 +1,90 @@
 # Homvaro Flutter App
 
-Homvaro is a Material 3 Flutter client for the Laravel rental-management API in
-`../Rentra`. The production app uses explicit Bloc events and states, a
-centralized HTTP client, Laravel Sanctum bearer authentication, and secure token
-storage. It does not fall back to local or generated data.
+Homvaro is a Material 3 Flutter client for a Laravel rental-management API. The production app uses explicit BLoC events and states, a centralized HTTP client, Laravel Sanctum bearer authentication, and secure token storage.
 
-## Supported workflows
+It is built around real owner/renter workflows rather than generated demo data.
 
-- Authentication with `identifier`, `password`, and `device_name`, including
-  `/me` session restoration, role-aware routing, logout, and global 401 expiry.
-- Owner property creation/editing, publication changes, and multipart image and
-  video upload.
-- Owner application review, tenancy creation and terms management, monthly
-  record review/freeze/reopen, and maintenance transitions/history.
-- Renter listing discovery and details, applications, tenancy history, monthly
-  drafts/submission/proofs, and maintenance requests/comments/history.
-- Role-aware notifications with read/unread and mark-read actions.
-- Shared loading, empty, API-error, retry, status, property-card, and media
-  states. Laravel 422 field errors are retained and rendered in readable form.
+## Supported Workflows
 
-Favorites are intentionally absent from the production client because Laravel
-does not expose a favorites endpoint under `/api/v1`. Property deletion and
-existing property-media deletion are also omitted because their API routes do
-not exist. The supported media upload contract is fully integrated.
+### Owner
+
+- Property creation and editing
+- Publication-status changes
+- Multipart image and video uploads
+- Rental application review
+- Tenancy creation and terms management
+- Monthly record review, freeze, and reopen flows
+- Maintenance status transitions and history
+
+### Renter
+
+- Listing discovery and property details
+- Rental applications
+- Tenancy history
+- Monthly record drafts and submissions
+- Proof uploads
+- Maintenance requests, comments, and history
+
+### Shared
+
+- Authentication with `identifier`, `password`, and `device_name`
+- `/me` session restoration
+- Role-aware routing
+- Logout and global 401/session-expiry handling
+- Role-aware notifications with read/unread state
+- Shared loading, empty, retry, API-error, and status states
+- Laravel 422 field-error parsing and readable validation messages
+
+Favorites are intentionally absent because the Laravel API does not expose a favorites endpoint under `/api/v1`. Property deletion and existing property-media deletion are also omitted because their API routes do not exist. The supported media-upload contract is fully integrated.
 
 ## Architecture
 
-- `lib/core/api/app_api_client.dart` — `/api/v1` requests, multipart, paging,
-  timeouts, network errors, Laravel errors, and 401 events.
-- `lib/repositories` — authentication and feature data boundaries.
-- `lib/features` — event/state/Bloc modules for every API-backed feature.
-- `lib/models/entities.dart` — defensive Laravel resource parsing and enums.
-- `lib/screens` — role-gated Owner and Renter mobile workflows.
-- `lib/widgets` — shared feature states, status badges, cards, and media UI.
+```mermaid
+flowchart LR
+    UI[Flutter Screens / Widgets] --> BLOC[BLoC Events + States]
+    BLOC --> REPO[Repositories]
+    REPO --> CLIENT[Central API Client]
+    CLIENT --> API[Laravel /api/v1]
+    API --> AUTH[Sanctum Auth]
+    API --> DATA[(Backend Data)]
+```
 
-## Run locally
+```text
+lib/
+├── core/
+│   └── api/
+├── repositories/
+├── features/
+├── models/
+├── screens/
+└── widgets/
+```
 
-The Android emulator reaches a Laravel server on the host through the default
-base URL `http://10.0.2.2:8000`:
+Key responsibilities:
+
+- `lib/core/api/app_api_client.dart` — `/api/v1` requests, multipart uploads, paging, timeouts, network errors, Laravel errors, and 401 events
+- `lib/repositories` — authentication and feature data boundaries
+- `lib/features` — event/state/BLoC modules for API-backed features
+- `lib/models/entities.dart` — defensive Laravel resource parsing and enums
+- `lib/screens` — role-gated Owner and Renter workflows
+- `lib/widgets` — shared status, error, loading, card, and media UI
+
+## Engineering Focus
+
+This project demonstrates:
+
+- role-aware mobile architecture
+- REST API integration against an existing backend contract
+- authentication/session recovery
+- BLoC-based state management
+- multipart media uploads
+- defensive API parsing
+- centralized error handling
+- business workflows that match backend capabilities instead of inventing unsupported client behavior
+
+## Run Locally
+
+The Android emulator reaches a Laravel server on the host through the default base URL `http://10.0.2.2:8000`:
 
 ```bash
 flutter pub get
@@ -61,3 +108,7 @@ flutter analyze
 flutter test
 flutter build apk --debug
 ```
+
+## Portfolio Note
+
+Homvaro is maintained as a portfolio example of a production-style Flutter client consuming a Laravel API with real role-based rental workflows.
